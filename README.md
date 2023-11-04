@@ -1,5 +1,6 @@
 # 249Project_The_Taxi
 Idea:
+
 ![alt text](https://github.com/Barry-Tan/249Project_The_Taxi/blob/main/idea.png)
 
 Current Stage:
