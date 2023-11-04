@@ -1,4 +1,6 @@
 # 249Project_The_Taxi
+Idea:
+![alt text](https://github.com/Barry-Tan/249Project_The_Taxi/blob/main/idea.png)
 
 Current Stage:
 
@@ -7,3 +9,7 @@ Current Stage:
 2. Camera_test.ipynb -> include runing live inference with ego taxi with YOLOV5
 
 ![alt text](https://github.com/Barry-Tan/249Project_The_Taxi/blob/main/map1.png)
+
+Example path:
+
+![alt text](https://github.com/Barry-Tan/249Project_The_Taxi/blob/main/path.png)
