@@ -22,9 +22,11 @@ Current Stage:
 
 ![alt text](https://github.com/Barry-Tan/249Project_The_Taxi/blob/main/map1.png)
 
-Example path:
+Example:
 
-![alt text](https://github.com/Barry-Tan/249Project_The_Taxi/blob/main/path.png)
+![alt text](https://github.com/Barry-Tan/249Project_The_Taxi/blob/main/gui.png)
+
+![alt text](https://github.com/Barry-Tan/249Project_The_Taxi/blob/main/Screenshot 2023-10-30 150615.png)
 
 
 Reference:
