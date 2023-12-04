@@ -1,5 +1,6 @@
 # 249Project_The_Taxi
 Idea:
+Elon Musk has mentioned that if Tesla attain Level 5 autonomous driving, it could conceivably function like Uber, allowing users to generate income without having to personally operate their vehicle. Imagine a situation where, after dropping you off at your workplace, your car autonomously switches to 'Uber mode', earning income until it's time to pick you up. Our project's goal is to simulate the aspect where the car travels to the passenger's location and transports them to their destination. We aim to replicate this scenario using various baseline models.
 
 ![alt text](https://github.com/Barry-Tan/249Project_The_Taxi/blob/main/idea.png)
 
