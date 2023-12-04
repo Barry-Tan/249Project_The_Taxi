@@ -27,6 +27,13 @@ MAX_STEER_DEGREES = 40
 CAMERA_POS_Z = 3 
 CAMERA_POS_X = -5 
 
+# initialize global variables for later being used with radar
+global_throttle = 0.0
+global_brake = 0.0
+
+global closest_distance
+closest_distance = None
+
 #adding params to display text to image
 font = cv2.FONT_HERSHEY_SIMPLEX
 # org - defining lines to display telemetry values on the screen
@@ -82,9 +89,9 @@ def maintain_speed(s):
     if s >= PREFERRED_SPEED:
         return 0
     elif s < PREFERRED_SPEED - SPEED_THRESHOLD:
-        return 0.8 # think of it as % of "full gas"
+        return 0.6 # % of "full gas"
     else:
-        return 0.4 # tweak this if the car is way over or under preferred speed 
+        return 0.3 # slow down acceleration 
 
 #function to subtract 2 vectors
 def angle_between(v1, v2):
@@ -124,6 +131,34 @@ def is_vehicle_stopped(vehicle, stop_threshold=0.1):
     speed = math.sqrt(velocity.x**2 + velocity.y**2 + velocity.z**2)
     return speed < stop_threshold
 
+def update_control_values(throttle, brake):
+    global global_throttle, global_brake
+    global_throttle, global_brake = throttle, brake
+
+def process_radar(data, vehicle, min_distance=5, preferred_speed=PREFERRED_SPEED):
+    global closest_distance
+    closest = min((d for d in data if math.cos(d.azimuth) > 0), key=lambda d: d.depth, default=None)
+
+    if closest:
+        closest_distance = closest.depth  # Update the global variable
+        if closest_distance < min_distance:
+            # If the closest object is within the minimum distance, slow down
+            print(f"Slowing down, object detected at {closest_distance} meters")
+            return 0.0, 0.8  # Throttle, Brake
+    else:
+        closest_distance = None
+
+    # Maintain preferred speed
+    current_speed = 3.6 * math.sqrt(vehicle.get_velocity().x**2 + vehicle.get_velocity().y**2 + vehicle.get_velocity().z**2)
+    return maintain_speed(current_speed), 0.0  # Throttle, Brake
+
+def get_traffic_light_state(vehicle):
+    # Get the traffic light affecting the vehicle (if any)
+    traffic_light = vehicle.get_traffic_light()
+    if traffic_light is not None and traffic_light.get_state() == carla.TrafficLightState.Red:
+        return 'Red'
+    return 'Green'
+
 def drive_along_route(vehicle,camera_data,route):
     quit = False
     curr_wp = 5 #we will be tracking waypoints in the route and switch to next one wen we get close to current one
@@ -145,12 +180,18 @@ def drive_along_route(vehicle,camera_data,route):
             break
             
         predicted_angle = get_angle(vehicle,route[curr_wp][0])
-        image = cv2.putText(image, 'Steering angle: '+str(round(predicted_angle,3)), org, font, fontScale, color, thickness, cv2.LINE_AA)
         v = vehicle.get_velocity()
         speed = round(3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2),0)
+
+        image = cv2.putText(image, 'Steering angle: '+str(round(predicted_angle,3)), org, font, fontScale, color, thickness, cv2.LINE_AA)
         image = cv2.putText(image, 'Speed: '+str(int(speed)), org2, font, fontScale, color, thickness, cv2.LINE_AA)
         image = cv2.putText(image, 'Next wp: '+str(curr_wp), org3, font, fontScale, color, thickness, cv2.LINE_AA)
-        estimated_throttle = maintain_speed(speed)
+        
+        if closest_distance is not None:
+            image = cv2.putText(image, 'Closest Distance: ' + str(round(closest_distance, 2)) + 'm', (30, 130), font, fontScale, color, thickness, cv2.LINE_AA)
+        else:
+            image = cv2.putText(image, 'Closest Distance: N/A', (30, 130), font, fontScale, color, thickness, cv2.LINE_AA)
+        
         # extra checks on predicted angle when values close to 360 degrees are returned
         if predicted_angle<-300:
             predicted_angle = predicted_angle+360
@@ -165,9 +206,18 @@ def drive_along_route(vehicle,camera_data,route):
         # conversion from degrees to -1 to +1 input for apply control function
         steer_input = steer_input/75
 
-        vehicle.apply_control(carla.VehicleControl(throttle=estimated_throttle, steer=steer_input))
+        estimated_throttle = global_throttle  # From radar
+        estimated_brake = global_brake
+
+        traffic_light_state = get_traffic_light_state(vehicle)
+        if traffic_light_state == 'Red':
+            estimated_brake = 0.9  # Full brake at red light
+            estimated_throttle = 0.0
+
+        vehicle.apply_control(carla.VehicleControl(throttle=estimated_throttle, steer=steer_input,brake=estimated_brake))
         cv2.imshow('RGB Camera',image)
-################# Intialization #############
+
+################# World Intialization #############
 
 # Load the waypoints
 stored_waypoints = load_stored_waypoints()
@@ -252,6 +302,16 @@ def call_service():
 
     cv2.namedWindow('RGB Camera',cv2.WINDOW_AUTOSIZE)
     cv2.imshow('RGB Camera',camera_data['image'])
+    
+    # Add a radar sensor
+    radar_blueprint = world.get_blueprint_library().find('sensor.other.radar')
+    radar_blueprint.set_attribute('horizontal_fov', str(35))
+    radar_blueprint.set_attribute('vertical_fov', str(20))
+    radar_transform = carla.Transform(carla.Location(x=2.0, z=1.0))
+    radar_sensor = world.spawn_actor(radar_blueprint, radar_transform, attach_to=vehicle)
+
+    # Modify the radar sensor listen method
+    radar_sensor.listen(lambda data: update_control_values(*process_radar(data, vehicle)))
 
     #drive from current taxi location to user location
     drive_along_route(vehicle,camera_data,route)
@@ -288,11 +348,11 @@ def call_service():
     vehicle.set_autopilot(True)
 
     cv2.destroyAllWindows()
-    camera.stop()
-    for sensor in world.get_actors().filter('*sensor*'):
-        sensor.destroy()
-    for actor in world.get_actors().filter('*vehicle*'):
-        actor.destroy()
+    # camera.stop()
+    # for sensor in world.get_actors().filter('*sensor*'):
+    #     sensor.destroy()
+    # for actor in world.get_actors().filter('*vehicle*'):
+    #     actor.destroy()
 
 ########################### The GUI Front-end #############################
 app = tk.Tk()
@@ -323,13 +383,13 @@ destination_label = ttk.Label(destination_frame, text="Destination:")
 destination_label.pack(side=tk.LEFT, padx=5)
 point_of_interest=[
     "beach",
-    "Hotel",
-    "Supermarket",
-    "Museums",
-    "Playground",
-    "Residence_district",
-    "Financial_district",
-    "Bank"]
+    "hotel",
+    "grocery",
+    "museums",
+    "playground",
+    "residence_district",
+    "financial_district",
+    "bank"]
 destination_dropdown = ttk.Combobox(destination_frame, textvariable=destination_var, values=point_of_interest)
 destination_dropdown.pack(side=tk.LEFT, padx=5)
 destination_frame.pack(padx=300, pady=5, fill="both")
