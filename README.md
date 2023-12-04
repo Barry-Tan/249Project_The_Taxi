@@ -16,3 +16,9 @@ Current Stage:
 Example path:
 
 ![alt text](https://github.com/Barry-Tan/249Project_The_Taxi/blob/main/path.png)
+
+
+Reference:
+https://github.com/vadim7s/SelfDrive/tree/master
+https://github.com/ultralytics/yolov5
+https://github.com/abwerby/Model-Predictive-Control-Carla/tree/master
