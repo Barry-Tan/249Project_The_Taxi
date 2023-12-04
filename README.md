@@ -20,13 +20,13 @@ Current Stage:
 
 3. PID_testing.py+contoller2d2.py+ctuils.py -> focus on implementing PID controller to the program
 
-![alt text](https://github.com/Barry-Tan/249Project_The_Taxi/blob/main/map1.png)
+![alt text](https://github.com/Barry-Tan/249Project_The_Taxi/blob/main/gui.png)
 
 Example:
 
-![alt text](https://github.com/Barry-Tan/249Project_The_Taxi/blob/main/gui.png)
+![alt text](https://github.com/Barry-Tan/249Project_The_Taxi/blob/main/path.png)
 
-![alt text](https://github.com/Barry-Tan/249Project_The_Taxi/blob/main/Screenshot 2023-10-30 150615.png)
+![alt text](https://github.com/Barry-Tan/249Project_The_Taxi/blob/main/yolo.png)
 
 
 Reference:
